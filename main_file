@@ -1,0 +1,45 @@
+from langchain_groq import ChatGroq
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain.schema.runnable import RunnableParallel
+from dotenv import load_dotenv
+
+load_dotenv()
+
+llm  = ChatGroq(
+     model="llama-3.1-8b-instant"
+)
+
+first_prompt = PromptTemplate(
+    template=" You are an expert support assistance, Please provide a short and simple paragraph on the given {text}",
+    input_variables=["topic"]
+)
+
+second_prompt = PromptTemplate(
+    template= "Your an expert support assistance, Please provide 5 questions along with their answer from the given text \n {text}",
+    input_variables=["text"]
+)
+
+third_prompt = PromptTemplate(
+    template= "Your an expert support assistance, Please merge the provided paragraph and questions and answers into a single document \n paragraph -> {paragraph} and questions and answers -> {test}",
+    input_variables=["paragraph","test"]
+)
+
+string_parser = StrOutputParser()
+
+parallel_chain = RunnableParallel({
+        'paragraph' : first_prompt | llm | string_parser,
+        'test' : second_prompt | llm | string_parser
+})
+
+sequential_chain = third_prompt | llm | string_parser
+
+final_chain = parallel_chain | sequential_chain
+
+query = input("Enter the topic : ")
+
+final_chain_output = final_chain.invoke({'topic':query})
+
+print(final_chain_output)
+
+final_chain.get_graph().print_ascii()
